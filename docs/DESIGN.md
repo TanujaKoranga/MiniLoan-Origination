@@ -25,3 +25,66 @@ Six logical tables + NG_CORE_BANKING:
 - EMI Formula: EMI = P * r * (1 + r)^n / ((1 + r)^n - 1), rounded to 2 decimal places (BigDecimal HALF_UP)
 - FOIR Formula: FOIR % = ((existing_obligations + rounded_EMI) / monthly_net_income) * 100 (Eligible when FOIR <= 50%)
 - Idempotency & Transactions: TransactionManager enforces full DB rollback on failure; unique constraints prevent duplicate active applications, duplicate disbursements, duplicate overdue alerts, and duplicate core-banking pushes.
+
+## 4. Visual ER Diagram
+```mermaid
+erDiagram
+    CUSTOMER ||--o{ LOAN_APPLICATION : applies
+    LOAN_APPLICATION ||--o| DISBURSEMENT : has
+    LOAN_APPLICATION ||--o{ APPLICATION_HISTORY : logs
+    LOAN_APPLICATION ||--o{ SYSTEM_ALERTS : triggers
+    LOAN_APPLICATION ||--o| NG_CORE_BANKING : syncs_to
+    CUSTOMER {
+        int customer_id PK
+        string name
+        date date_of_birth
+        string mobile UK
+    }
+    LOAN_APPLICATION {
+        int application_id PK
+        string application_number UK
+        int customer_id FK
+        string product
+        decimal requested_amount
+        int tenure_months
+        decimal proposed_emi
+        decimal foir_percentage
+        string status
+    }
+    DISBURSEMENT {
+        int disbursement_id PK
+        int application_id UK
+        string reference UK
+        decimal amount
+        datetime disbursed_at
+    }
+    APPLICATION_HISTORY {
+        int history_id PK
+        int application_id FK
+        string action
+        string old_status
+        string new_status
+        string performed_by
+    }
+    SYSTEM_ALERTS {
+        int alert_id PK
+        int application_id FK
+        string alert_type
+        datetime created_at
+    }
+    NG_CORE_BANKING {
+        int core_id PK
+        int application_id UK
+        int customer_id
+        decimal approved_amount
+        decimal disbursed_amount
+        datetime disbursed_date
+    }
+    UTILITY_RUN {
+        int run_id PK
+        string utility_name
+        string result
+        int applications_processed
+        int alerts_created
+    }
+```
